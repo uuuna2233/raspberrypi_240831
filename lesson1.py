@@ -5,4 +5,3 @@ num3 = 100
 print ('num1 id = ' , id(num1))
 print ('num2 id = ' , id(num2))
 print ('num3 id = ' , id(num3))
-123
