@@ -1,5 +1,8 @@
+import tools
 from machine import ADC, Timer, Pin, PWM, RTC
     
+tools.connect()
+
 adcpin1 = 4
 adcpin2 = 26
 pwmpin1 = 15
@@ -16,7 +19,7 @@ def read_temperature(t):
     print(f'現在溫度: {round(temperature, 1)}')
 
 def read_resistor(t):    
-    pwm1.freq(10)
+    pwm1.freq(50)
     
     duty = sensor2.read_u16()
     print(duty)
@@ -24,5 +27,5 @@ def read_resistor(t):
     
     print(f'可變電阻: {round(duty/65535*10)}')
     
-t1 = Timer(period=200, mode=Timer.PERIODIC, callback=read_temperature)
-t2 = Timer(period=200, mode=Timer.PERIODIC, callback=read_resistor)
+t1 = Timer(period=1000, mode=Timer.PERIODIC, callback=read_temperature)
+t2 = Timer(period=1000, mode=Timer.PERIODIC, callback=read_resistor)
