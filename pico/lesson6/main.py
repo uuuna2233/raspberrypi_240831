@@ -50,12 +50,16 @@ class SensorManager:
             "可變電阻": self.read_resistance()
         }
         for sensor, value in readings.items():
-            pubsub.pub(f'SA-01/{sensor}', f'{value}')
+            pubsub.pub(f'SA-57/{sensor}', f'{value}')
     
 if __name__ == "__main__":
+    
+    pubsub.connect()
+    tools.connect()
+    
+    '''
     try:
-        tools.connect()
-        pubsub.connect()
+        print('here')
     except RuntimeError as e:
         print(e)
     except Exception:
@@ -64,6 +68,6 @@ if __name__ == "__main__":
         manager = SensorManager()
     #   t = Timer(period=1000, mode=Timer.PERIODIC, callback=lambda t: manager.read_all())
         t = Timer(period=1000, mode=Timer.PERIODIC, callback=manager.read_all)
-    
+    '''
 
 
