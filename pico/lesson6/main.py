@@ -24,8 +24,9 @@ class SensorManager:
         ''' 偵測光線 '''
         
         adc_value = sensor2.read_u16()
+        light_level = round(adc_value/65535*10)
         
-        return adc_value
+        return light_level
 
     def read_resistance(self):
         ''' 可變電阻改變 LED 亮度 '''
@@ -45,21 +46,19 @@ class SensorManager:
         '''
         
         readings = {
-            "現在溫度": self.read_temperature(),
-            "現在光線": self.read_light(),
-            "可變電阻": self.read_resistance()
+            "temperature": self.read_temperature(),
+            "light": self.read_light(),
+            "resistance": self.read_resistance()
         }
         for sensor, value in readings.items():
-            pubsub.pub(f'SA-57/{sensor}', f'{value}')
+            print(sensor, value)
+            pubsub.request(f'SA-57/{sensor}', value)
     
 if __name__ == "__main__":
-    
-    pubsub.connect()
-    tools.connect()
-    
-    '''
+        
     try:
-        print('here')
+        tools.connect()
+        pubsub.connect()
     except RuntimeError as e:
         print(e)
     except Exception:
@@ -68,6 +67,3 @@ if __name__ == "__main__":
         manager = SensorManager()
     #   t = Timer(period=1000, mode=Timer.PERIODIC, callback=lambda t: manager.read_all())
         t = Timer(period=1000, mode=Timer.PERIODIC, callback=manager.read_all)
-    '''
-
-

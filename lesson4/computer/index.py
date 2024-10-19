@@ -2,6 +2,7 @@ import os
 import csv
 from datetime import datetime
 import paho.mqtt.client as mqtt
+import configparser
 
 def saveData(topic,value):
     root_dir=os.getcwd()
@@ -35,42 +36,41 @@ def saveData(topic,value):
             csvwriter.writerow([current_time, topic, value])
 
 # Define the callback function for when a message is received
-# 定義回呼函式,負責bloker收到topic訊息
+# 定義回呼函式，負責 broker 收到 topic 訊息
 def on_message(mosq, obj, msg):
-    global temp_origin_value
-    global led_origin_value
-    global resistance_origin_value
+    global temp_origin_value, led_origin_value, resistance_origin_value
 
-    #print("topic:{0},payload:{1},qos:{2}".format(msg.topic,msg.payload.decode('utf-8'),msg.qos)) #msg.payload是binary string
-    if msg.topic=="SA-57/temperature":
-        temperature=float(msg.payload.decode('utf-8'))
-        if temp_origin_value!=temperature:
-            temp_origin_value=temperature
-            saveData("Temperature",temperature)
-            print(f"Temperature:{temperature}")
-    elif msg.topic=="SA-57/light":
-        led_level=int(msg.payload.decode('utf-8'))
-        if led_origin_value!=led_level:
-            led_origin_value=led_level
-            saveData("LightLevel",led_level)
-            print(f"LightLevel:{led_level}")
+    # Decode the message payload
+    payload = msg.payload.decode('utf-8')
 
-    elif msg.topic=="SA-57/resistance":
-        resistance=int(msg.payload.decode('utf-8'))
-        if resistance_origin_value!=resistance:
-            resistance_origin_value=resistance
-            saveData("resistance",resistance)
-            print(f"resistance:{resistance}")
-    
+    # print("topic:{0},payload:{1},qos:{2}".format(msg.topic,msg.payload.decode('utf-8'),msg.qos)) #msg.payload是binary string
+    # Define a mapping for topics to their respective variables and types
+    topic_mapping = {
+        f"{channel}/temperature": (float, "temp_", temp_origin_value),
+        f"{channel}/light": (int, "led_", led_origin_value),
+        f"{channel}/resistance": (int, "resistance_", resistance_origin_value),
+    }
+
+    value_type, value_name, origin_value = topic_mapping[msg.topic]
+    new_value = value_type(payload)
+
+    # Dynamically access the origin variable using globals()
+    # Update the value only if it has changed
+    if origin_value != new_value:
+        globals()[value_name+'origin_value'] = new_value
+
+        saveData(msg.topic, new_value)
+        print(f"{msg.topic}: {new_value}")
+
 # Define the callback function for when the client connects to the broker
-# 定義回呼函式,負責處理當clent連線至broker時
+# 定義回呼函式，負責處理當 clent 連線至broker時
 def on_connect(client, userdata, flags, rc,properties=None):
     print(f"Connected with result code {rc}")
     # Subscribe to the topic once connected
-    client.subscribe("SA-57/#")
+    client.subscribe(f"{channel}/#")
     
 def main():
-    #必需使用VERSION2,VERSION1已經Deprecation
+    # 必需使用 VERSION2，VERSION1 已經Deprecation
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.on_message = on_message
     client.on_connect = on_connect
@@ -78,17 +78,22 @@ def main():
 	# Set user ID and password
     client.username_pw_set("pi", "raspberry")
 	
-	#SSL連線
-	#client.tls_set('root.ca', certfile='c1.crt', keyfile='c1.key')
-    # 	
+	# SSL連線
+	# client.tls_set('root.ca', certfile='c1.crt', keyfile='c1.key')	
 	# Connect to the broker (replace 'broker_address' with the address of your MQTT broker)
-    client.connect("192.168.0.252", 1883, 60)
+    client.connect(host, port, 60)
 
     client.loop_forever()
     pass
 
 if __name__ == "__main__":
-    led_origin_value=0
-    temp_origin_value=0
-    resistance_origin_value=0
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+
+    host = config['broker']['host']
+    port = int(config['broker']['port'])
+    user = config['broker']['user']
+    password = config['broker']['password']
+    led_origin_value = temp_origin_value = resistance_origin_value = config['pi']['origin_value']
+    channel = config['mqtt']['channel']
     main()
